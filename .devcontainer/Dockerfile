@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 RUN apt update && apt-get --no-install-recommends install -y \
     build-essential \
-    git wget curl ca-certificates
+    git ssh wget curl ca-certificates
 
 ARG UID
 ARG GID
