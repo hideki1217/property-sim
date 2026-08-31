@@ -1,0 +1,14 @@
+services:
+  devel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${HOST_UID}
+        GID: ${HOST_GID}
+        USER_NAME: developer
+    volumes:
+      - ..:/workspace
+      - ${HOST_HOME}/.ssh:/home/developer/.ssh:ro
+    working_dir: /workspace
+    tty: true
