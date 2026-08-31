@@ -12,3 +12,11 @@ services:
       - ${HOST_HOME}/.ssh:/home/developer/.ssh:ro
     working_dir: /workspace
     tty: true
+    networks:
+      - devnet
+
+networks:
+  devnet:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: ${HOST_MTU}
