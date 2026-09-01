@@ -1,6 +1,26 @@
-from .configure import Configure, Loan, Management, Property
+from .configure import Configure, Loan, Management, Property, Tax
 from .simulator import simulate
 from .visualizer import plot_simulation
+
+
+def rc_construction(y: int) -> float:
+    if y == 0:
+        return 1.0
+    if y < 5:
+        return 0.95
+    if y < 10:
+        return 0.89
+    if y < 15:
+        return 0.81
+    if y < 20:
+        return 0.73
+    if y < 25:
+        return 0.64
+    if y < 40:
+        return 0.55
+    if y < 60:
+        return 0.33
+    return 0.2
 
 
 def main() -> None:
@@ -28,6 +48,16 @@ def main() -> None:
             10_0000,
             [0.025 for _ in range(term * 12)],
             [11_7616 for _ in range(term * 12)],
+        ),
+        tax=Tax(
+            0.1,
+            0.014,
+            0.003,
+            0.04,
+            [
+                ((3190_0000 - 1760_0000) * 0.7 + 1760_0000 * 0.7) * rc_construction(y)
+                for y in range(term * 2)
+            ],
         ),
     )
     res = simulate(c)

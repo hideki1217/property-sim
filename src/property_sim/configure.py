@@ -6,6 +6,16 @@ Year = int
 
 
 @dataclass(frozen=True)
+class Tax:
+    consumption_tax_rate: float
+    standard_tax_rate_for_fixed_asset_tax: float
+    maximum_tax_rate_for_urban_planning_tax: float
+    standard_tax_rate_for_real_estate_acquisition_tax: float
+
+    fixed_asset_tax_assessment_value_per_year: list[Yen]
+
+
+@dataclass(frozen=True)
 class Property:
     sale_price_of_land: Yen
     sale_price_of_building: Yen
@@ -56,3 +66,4 @@ class Configure:
     prop: Property
     management: Management
     loan: Loan
+    tax: Tax
