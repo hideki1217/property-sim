@@ -1,4 +1,11 @@
-from property_sim.configure import Configure, Loan, Management, Property, Tax
+from property_sim.configure import (
+    Configure,
+    Loan,
+    Management,
+    Property,
+    SalaryIncomeProfile,
+    Tax,
+)
 from property_sim.simulator import simulate
 from property_sim.visualizer import plot_simulation
 
@@ -96,3 +103,45 @@ def test_without_tax() -> None:
     )
     res = simulate(c)
     plot_simulation(res, "./property_sim-without_tax.png")
+
+
+def test_with_tax_and_tax_refund() -> None:
+    term = 35
+    c = Configure(
+        prop=Property(
+            3190_0000 - 1760_0000,
+            1760_0000,
+            110_0000,
+            [10_0500 for _ in range(term * 2 * 12)],
+            [5910 for _ in range(term * 2 * 12)],
+            [1480 for _ in range(term * 2 * 12)],
+            [
+                (3190_0000 - 1760_0000) * (0.8) * ((0.98) ** (i // 12))
+                for i in range(term * 2 * 12)
+            ],
+            [1760_0000 for _ in range(term * 2 * 12)],
+        ),
+        management=Management([8683 for _ in range(term * 2 * 12)]),
+        loan=Loan(
+            3290_0000,
+            term,
+            10_0000,
+            [0.025 for _ in range(term * 12)],
+            [11_7616 for _ in range(term * 12)],
+        ),
+        tax=Tax(
+            0.1,
+            0.014,
+            0.003,
+            0.04,
+            [
+                ((3190_0000 - 1760_0000) * 0.7 + 1760_0000 * 0.7) * rc_construction(y)
+                for y in range(term * 2)
+            ],
+        ),
+        salary_profile=SalaryIncomeProfile(
+            annual_salary_income=695_0000, marginal_income_tax_rate=0.2
+        ),
+    )
+    res = simulate(c)
+    plot_simulation(res, "./property_sim-with_tax_and_tax_refund.png")

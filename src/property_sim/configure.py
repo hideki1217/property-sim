@@ -6,6 +6,18 @@ Year = int
 
 
 @dataclass(frozen=True)
+class SalaryIncomeProfile:
+    annual_salary_income: Yen
+    marginal_income_tax_rate: float
+    resident_tax_rate: float = 0.10
+
+    @property
+    def total_tax_rate(self) -> float:
+        """適用される合計税率（損益通算時の還付率）"""
+        return self.marginal_income_tax_rate + self.resident_tax_rate
+
+
+@dataclass(frozen=True)
 class Tax:
     consumption_tax_rate: float
     standard_tax_rate_for_fixed_asset_tax: float
@@ -13,6 +25,7 @@ class Tax:
     standard_tax_rate_for_real_estate_acquisition_tax: float
 
     fixed_asset_tax_assessment_value_per_year: list[Yen]
+    building_useful_life_years: Year = 22
 
 
 @dataclass(frozen=True)
@@ -67,3 +80,4 @@ class Configure:
     management: Management
     loan: Loan
     tax: Tax
+    salary_profile: SalaryIncomeProfile | None = None

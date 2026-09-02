@@ -20,6 +20,8 @@ class SimulationResult:
     cumulative_tax: Yen
     loan_balance: Yen
     market_value: Yen
+    tax_refund: Yen  # 当月の節税額（還付額）
+    cumulative_tax_refund: Yen  # 累計節税額
     net_profit: Yen
 
 
@@ -46,6 +48,14 @@ def simulate(c: Configure) -> list[SimulationResult]:
     cum_expenses = 0
     cum_repayment = 0
     cum_tax = 0
+    cum_tax_refund = 0  # 【追加】累計節税額
+
+    # 建物の月額減価償却費（簡易定額法）
+    monthly_depreciation = 0
+    if c.tax.building_useful_life_years > 0:
+        monthly_depreciation = math.floor(
+            c.prop.sale_price_of_building / (c.tax.building_useful_life_years * 12)
+        )
 
     for m in range(total_months):
         year_idx = m // 12
@@ -59,7 +69,7 @@ def simulate(c: Configure) -> list[SimulationResult]:
         consumption_tax = math.floor(taxable_expenses * c.tax.consumption_tax_rate)
         monthly_expenses = taxable_expenses + repair + consumption_tax
 
-        # Property Tax (Fixed Asset Tax/Urban Planning Tax)
+        # 保有税（固定資産税・都市計画税）
         tax_year_idx = min(
             year_idx, max(0, len(c.tax.fixed_asset_tax_assessment_value_per_year) - 1)
         )
@@ -75,7 +85,7 @@ def simulate(c: Configure) -> list[SimulationResult]:
         )
         monthly_holding_tax = monthly_fixed_asset_tax + monthly_urban_planning_tax
 
-        # Property Price
+        # 物件価格
         land_val = get_at(c.prop.market_price_of_land_per_month, m, 0)
         bldg_val = get_at(c.prop.market_price_of_building_per_month, m, 0)
         market_value = land_val + bldg_val
@@ -84,11 +94,12 @@ def simulate(c: Configure) -> list[SimulationResult]:
         cum_expenses += monthly_expenses
         cum_tax += monthly_holding_tax
 
-        # Loan Repayment Calculation
+        # ローン返済および利息の計算
+        interest = 0
         if m < (c.loan.term * 12) and remaining_loan > 0:
             rate_idx = min(year_idx, len(c.loan.interest_rate_per_year) - 1)
             rate = c.loan.interest_rate_per_year[rate_idx] / 12
-            interest = math.floor(remaining_loan * rate)
+            interest = math.floor(remaining_loan * rate)  # 当月利息（経費計上可能分）
             repayment = get_at(c.loan.repayment_per_month, m, 0)
 
             actual_repayment = min(repayment, remaining_loan + interest)
@@ -97,10 +108,27 @@ def simulate(c: Configure) -> list[SimulationResult]:
         else:
             remaining_loan = 0
 
-        # Profit and Loss Statement
+        # --- 【追加】不動産所得および節税額（損益通算）の計算 ---
+        monthly_tax_refund = 0
+        if c.salary_profile is not None:
+            # 不動産所得計算上の必要経費（現金支出 ＋ 減価償却費 ＋ ローン利息）
+            # ※元金返済分や修繕積立金（条件による）は税務上の経費から除くのが一般的ですが、ここでは簡略化しています
+            tax_deductible_expenses = (
+                monthly_expenses + monthly_holding_tax + interest + monthly_depreciation
+            )
+            real_estate_income = rent - tax_deductible_expenses
+
+            # 不動産所得が赤字の場合のみ、給与所得と損益通算して還付が発生
+            if real_estate_income < 0:
+                loss = abs(real_estate_income)
+                monthly_tax_refund = math.floor(loss * c.salary_profile.total_tax_rate)
+
+        cum_tax_refund += monthly_tax_refund
+
+        # キャッシュフローと純利益（節税還付金を加算）
         operating_cash_flow = cum_rent - cum_expenses - cum_repayment - cum_tax
         net_profit = (
-            operating_cash_flow + market_value - remaining_loan
+            operating_cash_flow + market_value - remaining_loan + cum_tax_refund
         ) - initial_investment
 
         results.append(
@@ -112,6 +140,8 @@ def simulate(c: Configure) -> list[SimulationResult]:
                 cumulative_tax=cum_tax,
                 loan_balance=remaining_loan,
                 market_value=market_value,
+                tax_refund=monthly_tax_refund,
+                cumulative_tax_refund=cum_tax_refund,
                 net_profit=net_profit,
             )
         )
