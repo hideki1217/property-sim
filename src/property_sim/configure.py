@@ -46,6 +46,8 @@ class Property:
 class Management:
     management_fee_per_month: list[Yen]
 
+    set_rent_transfer_fee: Yen = 220
+
 
 @dataclass(frozen=True)
 class Loan:

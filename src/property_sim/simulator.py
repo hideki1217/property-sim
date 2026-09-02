@@ -69,7 +69,12 @@ def simulate(c: Configure) -> list[SimulationResult]:
 
         taxable_expenses = maint + mgmt
         consumption_tax = math.floor(taxable_expenses * c.tax.consumption_tax_rate)
-        monthly_expenses = taxable_expenses + repair + consumption_tax  # 経費
+        monthly_expenses = (
+            taxable_expenses
+            + repair
+            + consumption_tax
+            + c.management.set_rent_transfer_fee
+        )  # 経費
 
         tax_year_idx = min(
             year_idx, max(0, len(c.tax.fixed_asset_tax_assessment_value_per_year) - 1)
